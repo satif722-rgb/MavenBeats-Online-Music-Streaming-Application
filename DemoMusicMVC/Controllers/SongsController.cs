@@ -56,6 +56,21 @@ namespace DemoMusicMVC.Controllers
                 songs = songs.Where(s => s.songName.Contains(searchString));
             }
             ViewData["CurrentFilter"] = searchString;
+
+            var userId = _userManager.GetUserId(User);
+            if (userId != null)
+            {
+                var favoriteIds = await _context.Favorites
+                    .Where(f => f.UserId == userId)
+                    .Select(f => f.SongId)
+                    .ToListAsync();
+                ViewData["FavoriteIds"] = new System.Collections.Generic.HashSet<int>(favoriteIds);
+            }
+            else
+            {
+                ViewData["FavoriteIds"] = new System.Collections.Generic.HashSet<int>();
+            }
+
             return View(await songs.ToListAsync());
         }
         [Authorize(Roles = "Admin,Customer,PremiumCustomer")]

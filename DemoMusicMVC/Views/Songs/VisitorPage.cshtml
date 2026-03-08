@@ -1,14 +1,11 @@
 ﻿@model IEnumerable<DemoMusicMVC.Models.Song>
-@inject Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser> UserManager
-@inject DemoMusicMVC.Data.ApplicationDbContext DbContext
 
 @{
     ViewData["Title"] = "Browse Songs";
     var currentFilter = ViewData["CurrentFilter"] as string;
-    var userId = UserManager.GetUserId(User);
-    var userFavorites = userId != null
-        ? DbContext.Favorites.Where(f => f.UserId == userId).Select(f => f.SongId).ToHashSet()
-        : new System.Collections.Generic.HashSet<int>();
+    var userIsLoggedIn = User.Identity?.IsAuthenticated == true;
+    var favoriteIds = ViewData["FavoriteIds"] as System.Collections.Generic.HashSet<int>
+                      ?? new System.Collections.Generic.HashSet<int>();
 }
 
 <h2 class="mb-4">Browse Songs</h2>
@@ -46,9 +43,9 @@
                         <i class="fas fa-play"></i> Play
                     </a>
 
-                    @if (userId != null)
+                    @if (userIsLoggedIn)
                     {
-                        var isFav = userFavorites.Contains(item.songId);
+                        var isFav = favoriteIds.Contains(item.songId);
                         <form asp-controller="Favorites" asp-action="Toggle" method="post" style="display:inline;">
                             <input type="hidden" name="songId" value="@item.songId" />
                             <input type="hidden" name="returnUrl" value="@Url.Action("VisitorPage", "Songs", new { searchString = currentFilter })" />
