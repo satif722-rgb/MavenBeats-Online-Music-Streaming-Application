@@ -23,7 +23,7 @@
 </div>*@
 <div class="card mx-auto" style="max-width: 21.25rem; background-color:#f1f3f4">
     <div class="view overlay">
-        <img class="card-img-top" src="https://localhost:44392/app-images/@Model.photoPath"
+        <img class="card-img-top" src="/app-images/@Model.photoPath"
              alt="Card image cap">
         <a href="#!">
             <div class="mask rgba-white-slight"></div>
@@ -32,7 +32,7 @@
     <div class="card-body">
         <h4 class="card-title">@Html.DisplayFor(model => model.songName)</h4>
         <audio class="embed-responsive-item" preload="none" controls controlsList="nodownload" style="background: transparent; outline: none;">
-            <source src="https://localhost:44392/app-songs/@Model.songPath">
+            <source src="/app-songs/@Model.songPath">
             Sorry, Your Browser does not support This File.
         </audio>
     </div>

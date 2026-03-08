@@ -1,26 +1,40 @@
 ﻿@model IEnumerable<DemoMusicMVC.Models.Song>
+@inject Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser> UserManager
+@inject DemoMusicMVC.Data.ApplicationDbContext DbContext
 
 @{
-    ViewData["Title"] = "Songs";
+    ViewData["Title"] = "Browse Songs";
+    var currentFilter = ViewData["CurrentFilter"] as string;
+    var userId = UserManager.GetUserId(User);
+    var userFavorites = userId != null
+        ? DbContext.Favorites.Where(f => f.UserId == userId).Select(f => f.SongId).ToHashSet()
+        : new System.Collections.Generic.HashSet<int>();
 }
+
+<h2 class="mb-4">Browse Songs</h2>
+
+<form asp-action="VisitorPage" method="get" class="mb-4">
+    <div class="input-group">
+        <input type="text" name="searchString" value="@currentFilter" class="form-control" placeholder="Search songs by name..." />
+        <div class="input-group-append">
+            <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search"></i> Search
+            </button>
+            @if (!string.IsNullOrWhiteSpace(currentFilter))
+            {
+                <a asp-action="VisitorPage" class="btn btn-outline-secondary">Clear</a>
+            }
+        </div>
+    </div>
+</form>
+
 <div class="row row-cols-1 row-cols-md-3">
     @foreach (var item in Model)
     {
         <div class="col mb-4">
-            @*<div class="row row-cols-1 row-cols-md-4">
-                    <div class="col mb-4">
-                        <div class="card h-100 w-25">
-                            <img src="" height="200" width="100" class="card-img-top" alt="No Image">
-                            <div class="card-body">
-                                <h5 class="card-title"></h5>
-
-                            </div>
-                        </div>
-                    </div>
-                </div>*@
             <div class="card h-100" style="max-width: 20rem;">
                 <div class="view overlay">
-                    <img class="card-img-top" src="https://localhost:44392/app-images/@item.photoPath"
+                    <img class="card-img-top" src="/app-images/@item.photoPath"
                          alt="Card image cap">
                     <a href="#!">
                         <div class="mask rgba-white-slight"></div>
@@ -28,9 +42,34 @@
                 </div>
                 <div class="card-body">
                     <h4 class="card-title">@item.songName</h4>
-                    <a class="btn btn-primary" asp-action="Details" asp-route-id="@item.songId">Play</a>
+                    <a class="btn btn-primary" asp-action="Details" asp-route-id="@item.songId">
+                        <i class="fas fa-play"></i> Play
+                    </a>
+
+                    @if (userId != null)
+                    {
+                        var isFav = userFavorites.Contains(item.songId);
+                        <form asp-controller="Favorites" asp-action="Toggle" method="post" style="display:inline;">
+                            <input type="hidden" name="songId" value="@item.songId" />
+                            <input type="hidden" name="returnUrl" value="@Url.Action("VisitorPage", "Songs", new { searchString = currentFilter })" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-link pl-1" title="@(isFav ? "Remove from Favorites" : "Add to Favorites")">
+                                <i class="fas fa-heart @(isFav ? "text-danger" : "text-secondary")"></i>
+                            </button>
+                        </form>
+
+                        <a asp-controller="Playlists" asp-action="SelectPlaylist" asp-route-songId="@item.songId"
+                           class="btn btn-link pl-1" title="Add to Playlist">
+                            <i class="fas fa-plus-circle text-info"></i>
+                        </a>
+                    }
                 </div>
             </div>
         </div>
     }
 </div>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No songs found@(!string.IsNullOrWhiteSpace(currentFilter) ? $" matching \"{currentFilter}\"" : "").</p>
+}

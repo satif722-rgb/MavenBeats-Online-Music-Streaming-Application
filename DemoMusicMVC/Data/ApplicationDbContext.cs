@@ -14,5 +14,8 @@ namespace DemoMusicMVC.Data
         {
         }
         public DbSet<Song> songs { get; set; }
+        public DbSet<Playlist> Playlists { get; set; }
+        public DbSet<PlaylistSong> PlaylistSongs { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
     }
 }

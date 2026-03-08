@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Songs";
+    var currentUserId = ViewData["CurrentUserId"] as string;
 }
 
 <p>
@@ -10,36 +11,20 @@
 <div class="card-columns">
     @foreach (var item in Model)
     {
-        @*<div class="col mb-4">*@
-            <div class="card ml-0 h-100" style="max-width: 20rem;">
-                <div class="view overlay">
-                    <img class="card-img-top" src="https://localhost:44392/app-images/@item.photoPath"
-                         alt="Card image cap">
-                    <a href="#!">
-                        <div class="mask rgba-white-slight"></div>
-                    </a>
-                </div>
-                <div class="card-body">
-                    <h4 class="card-title">@item.songName</h4>
-                    <a class="btn btn-link pl-0 text-primary" asp-action="Details" asp-route-id="@item.songId">Play</a>
-                    <a class="btn btn-link pl-0" asp-action="Edit" asp-route-id="@item.songId">Edit</a>
-                    <a class="btn btn-link pl-0 text-danger" asp-action="Delete" asp-route-id="@item.songId">Delete</a>
-                </div>
+        <div class="card ml-0 h-100" style="max-width: 20rem;">
+            <div class="view overlay">
+                <img class="card-img-top" src="/app-images/@item.photoPath"
+                     alt="Card image cap">
+                <a href="#!">
+                    <div class="mask rgba-white-slight"></div>
+                </a>
             </div>
-        @*</div>*@
-       @* <div class="row row-cols-1 row-cols-md-4">
-            <div class="col mb-4">
-                <div class="card h-100 w-25">
-                    <img src="" height="200" width="100" class="card-img-top" alt="No Image">
-                    <div class="card-body">
-                        <h5 class="card-title"></h5>
-                        <div class="btn-group">
-                            
-                        </div>
-                    </div>
-                </div>
+            <div class="card-body">
+                <h4 class="card-title">@item.songName</h4>
+                <a class="btn btn-link pl-0 text-primary" asp-action="Details" asp-route-id="@item.songId">Play</a>
+                <a class="btn btn-link pl-0" asp-action="Edit" asp-route-id="@item.songId">Edit</a>
+                <a class="btn btn-link pl-0 text-danger" asp-action="Delete" asp-route-id="@item.songId">Delete</a>
             </div>
-        </div>*@
-        
+        </div>
     }
 </div>
