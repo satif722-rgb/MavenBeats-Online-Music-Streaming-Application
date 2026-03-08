@@ -1,0 +1,48 @@
+@model IEnumerable<DemoMusicMVC.Models.Favorite>
+
+@{
+    ViewData["Title"] = "My Favorites";
+}
+
+<h2>My Favorites</h2>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">You have no favorite songs yet. Click the <i class="fas fa-heart text-secondary"></i> icon on a song to add it to your favorites.</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-3">
+        @foreach (var fav in Model)
+        {
+            if (fav.Song != null)
+            {
+                <div class="col mb-4">
+                    <div class="card h-100" style="max-width: 20rem;">
+                        <div class="view overlay">
+                            <img class="card-img-top" src="/app-images/@fav.Song.photoPath" alt="@fav.Song.songName">
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@fav.Song.songName</h5>
+                            <p class="card-text text-muted small">
+                                Added: @fav.DateAdded.ToLocalTime().ToString("MMM dd, yyyy")
+                            </p>
+                            <a asp-controller="Songs" asp-action="Details" asp-route-id="@fav.Song.songId"
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-play"></i> Play
+                            </a>
+                            <form asp-controller="Favorites" asp-action="Toggle" method="post" style="display:inline;">
+                                <input type="hidden" name="songId" value="@fav.Song.songId" />
+                                <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Favorites")" />
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-link pl-1" title="Remove from Favorites">
+                                    <i class="fas fa-heart text-danger"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}

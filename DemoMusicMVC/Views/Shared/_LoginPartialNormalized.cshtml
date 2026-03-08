@@ -9,6 +9,15 @@
     <li class="nav-item">
         <a class="nav-link" asp-area="" asp-controller="Songs" asp-action="Index">Home</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Songs" asp-action="VisitorPage">Browse Songs</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Playlists" asp-action="Index">My Playlists</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Favorites" asp-action="Index">My Favorites</a>
+    </li>
     @if (User.IsInRole("Customer") && !User.IsInRole("PremiumCustomer"))
     {
         <li class="nav-item">
@@ -19,7 +28,7 @@
 <ul class="navbar-nav smooth-scroll ml-auto">
 
     <li class="nav-item">
-        <a class="nav-link" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Welcome @User.Identity.Name!</a>
+        <a class="nav-link" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Welcome @User.Identity?.Name!</a>
     </li>
     <li class="nav-item">
         <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">

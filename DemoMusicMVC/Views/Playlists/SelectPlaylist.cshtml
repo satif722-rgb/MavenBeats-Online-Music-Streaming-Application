@@ -1,0 +1,39 @@
+@model IEnumerable<DemoMusicMVC.Models.Playlist>
+
+@{
+    ViewData["Title"] = "Add to Playlist";
+    var songId = ViewData["SongId"];
+}
+
+<h2>Add to Playlist</h2>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">You have no playlists yet.</p>
+    <a asp-action="Create" class="btn btn-primary">Create a Playlist</a>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var playlist in Model)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@playlist.Name</span>
+                <form asp-action="AddSong" method="post">
+                    <input type="hidden" name="playlistId" value="@playlist.PlaylistId" />
+                    <input type="hidden" name="songId" value="@songId" />
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </form>
+            </li>
+        }
+    </ul>
+}
+
+<div class="mt-3">
+    <a asp-controller="Songs" asp-action="VisitorPage" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Songs
+    </a>
+</div>

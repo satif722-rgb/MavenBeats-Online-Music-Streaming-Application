@@ -35,25 +35,50 @@ namespace DemoMusicMVC.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(HttpContext.User);
-            IList<string> role =await _userManager.GetRolesAsync(user);
-            if(role != null && (role[0] == "Admin" || role[0] == "PremiumCustomer"))
+            IList<string> role = await _userManager.GetRolesAsync(user!);
+            if (role != null && (role[0] == "Admin" || role[0] == "PremiumCustomer"))
             {
-                return View(await _context.songs.ToListAsync());
+                // Admins and PremiumCustomers only see their own songs
+                var ownSongs = await _context.songs
+                    .Where(s => s.UploadedByUserId == user!.Id)
+                    .ToListAsync();
+                return View(ownSongs);
             }
             return View("VisitorPage", await _context.songs.ToListAsync());
         }
         [Authorize(Roles = "Admin,Customer,PremiumCustomer")]
-        // GET: Songs
-        public async Task<IActionResult> VisitorPage()
-        {            
-            return View(await _context.songs.ToListAsync());
+        // GET: Songs/VisitorPage
+        public async Task<IActionResult> VisitorPage(string? searchString)
+        {
+            var songs = _context.songs.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(searchString))
+            {
+                songs = songs.Where(s => s.songName.Contains(searchString));
+            }
+            ViewData["CurrentFilter"] = searchString;
+
+            var userId = _userManager.GetUserId(User);
+            if (userId != null)
+            {
+                var favoriteIds = await _context.Favorites
+                    .Where(f => f.UserId == userId)
+                    .Select(f => f.SongId)
+                    .ToListAsync();
+                ViewData["FavoriteIds"] = new System.Collections.Generic.HashSet<int>(favoriteIds);
+            }
+            else
+            {
+                ViewData["FavoriteIds"] = new System.Collections.Generic.HashSet<int>();
+            }
+
+            return View(await songs.ToListAsync());
         }
         [Authorize(Roles = "Admin,Customer,PremiumCustomer")]
         // GET: Songs/Details/5
         public async Task<IActionResult> Details(int? id)
-        {            
+        {
             var user = await _userManager.GetUserAsync(HttpContext.User);
-            IList<string> role = await _userManager.GetRolesAsync(user);
+            IList<string> role = await _userManager.GetRolesAsync(user!);
             if (role != null && (role[0] == "Admin" || role[0] == "PremiumCustomer"))
             {
                 if (id == null)
@@ -84,7 +109,7 @@ namespace DemoMusicMVC.Controllers
                     return NotFound();
                 }
 
-                return View("PlaySong",song);
+                return View("PlaySong", song);
             }
         }
         [Authorize(Roles = "Admin,PremiumCustomer")]
@@ -95,14 +120,12 @@ namespace DemoMusicMVC.Controllers
         }
 
         // POST: Songs/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,PremiumCustomer")]
         public async Task<IActionResult> Create(SongViewModel uploadedSong)
         {
-            string pathForPhoto = null, pathForSong = null;
+            string? pathForPhoto = null, pathForSong = null;
             if (ModelState.IsValid)
             {
                 if (uploadedSong.song != null)
@@ -119,12 +142,15 @@ namespace DemoMusicMVC.Controllers
                     string filePath = Path.Combine(uploadFolder, pathForPhoto);
                     uploadedSong.photo.CopyTo(new FileStream(filePath, FileMode.Create));
                 }
-                if(uploadedSong.song != null && uploadedSong.photo != null) { 
+                if (uploadedSong.song != null && uploadedSong.photo != null)
+                {
+                    var currentUser = await _userManager.GetUserAsync(HttpContext.User);
                     Song s = new Song
                     {
                         songName = uploadedSong.songName,
-                        photoPath = pathForPhoto,
-                        songPath = pathForSong
+                        photoPath = pathForPhoto!,
+                        songPath = pathForSong!,
+                        UploadedByUserId = currentUser!.Id
                     };
                     _context.Add(s);
                     await _context.SaveChangesAsync();
@@ -147,40 +173,23 @@ namespace DemoMusicMVC.Controllers
             {
                 return NotFound();
             }
-            string spath = song.songPath;
-            string ppath = song.photoPath;
-            string webRoot = hostingEnvironment.WebRootPath;
-            if(System.IO.Directory.Exists(webRoot + "/Photos/") && System.IO.Directory.Exists(webRoot + "/Songs/"))
+
+            // Ownership check
+            var currentUser = await _userManager.GetUserAsync(HttpContext.User);
+            if (song.UploadedByUserId != null && song.UploadedByUserId != currentUser!.Id)
             {
-                FormFile pfile = null, sfile = null;
-                /*if(System.IO.File.Exists(webRoot+"/Photos/"+ppath))
-                {
-                    var memory = new MemoryStream();
-                    using (var stream = new FileStream(webRoot + "/Photos/" + ppath, FileMode.Open))
-                    {
-                        await stream.CopyToAsync(memory);
-                    }                    
-                    memory.Position = 0;
-                    pfile = new FormFile(memory,0,memory.Length,ppath,ppath);
-                    memory.Close();
-                }
-                if (System.IO.File.Exists(webRoot + "/Songs/" + spath))
-                {
-                    var memory = new MemoryStream();
-                    using (var stream = new FileStream(webRoot + "/Songs/" + spath, FileMode.Open))
-                    {
-                        await stream.CopyToAsync(memory);
-                    }
-                    memory.Position = 0;
-                    sfile = new FormFile(memory, 0, memory.Length, spath, spath);
-                    memory.Close();
-                }*/
+                return Forbid();
+            }
+
+            string webRoot = hostingEnvironment.WebRootPath;
+            if (System.IO.Directory.Exists(webRoot + "/Photos/") && System.IO.Directory.Exists(webRoot + "/Songs/"))
+            {
                 SongViewModel s = new SongViewModel()
                 {
                     songId = song.songId,
                     songName = song.songName,
-                    song = sfile,
-                    photo = pfile
+                    song = null,
+                    photo = null
                 };
                 return View(s);
             }
@@ -188,18 +197,15 @@ namespace DemoMusicMVC.Controllers
             {
                 return NotFound();
             }
-            
         }
 
         // POST: Songs/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,PremiumCustomer")]
         public async Task<IActionResult> Edit(int id, SongViewModel _song)
         {
-            string pathForPhoto = null, pathForSong = null;
+            string? pathForPhoto = null, pathForSong = null;
             if (id != _song.songId)
             {
                 return NotFound();
@@ -207,6 +213,19 @@ namespace DemoMusicMVC.Controllers
 
             if (ModelState.IsValid)
             {
+                var song = await _context.songs.FirstOrDefaultAsync(m => m.songId == id);
+                if (song == null)
+                {
+                    return NotFound();
+                }
+
+                // Ownership check
+                var currentUser = await _userManager.GetUserAsync(HttpContext.User);
+                if (song.UploadedByUserId != null && song.UploadedByUserId != currentUser!.Id)
+                {
+                    return Forbid();
+                }
+
                 try
                 {
                     if (_song.song != null)
@@ -223,14 +242,10 @@ namespace DemoMusicMVC.Controllers
                         string filePath = Path.Combine(uploadFolder, pathForPhoto);
                         _song.photo.CopyTo(new FileStream(filePath, FileMode.Create));
                     }
-                    var song = await _context.songs.FirstOrDefaultAsync(m => m.songId == id);
-                    if (song == null)
-                    {
-                        return NotFound();
-                    }
+
                     song.songName = _song.songName;
-                    song.songPath = pathForSong;
-                    song.photoPath = pathForPhoto;
+                    if (pathForSong != null) song.songPath = pathForSong;
+                    if (pathForPhoto != null) song.photoPath = pathForPhoto;
                     _context.Update(song);
                     await _context.SaveChangesAsync();
                 }
@@ -265,6 +280,13 @@ namespace DemoMusicMVC.Controllers
                 return NotFound();
             }
 
+            // Ownership check
+            var currentUser = await _userManager.GetUserAsync(HttpContext.User);
+            if (song.UploadedByUserId != null && song.UploadedByUserId != currentUser!.Id)
+            {
+                return Forbid();
+            }
+
             return View(song);
         }
 
@@ -275,6 +297,18 @@ namespace DemoMusicMVC.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var song = await _context.songs.FindAsync(id);
+            if (song == null)
+            {
+                return NotFound();
+            }
+
+            // Ownership check
+            var currentUser = await _userManager.GetUserAsync(HttpContext.User);
+            if (song.UploadedByUserId != null && song.UploadedByUserId != currentUser!.Id)
+            {
+                return Forbid();
+            }
+
             _context.songs.Remove(song);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
@@ -283,10 +317,10 @@ namespace DemoMusicMVC.Controllers
         public async Task<IActionResult> Convert()
         {
             var user = await _userManager.GetUserAsync(HttpContext.User);
-            await _userManager.AddToRoleAsync(user, "PremiumCustomer");
-            await _userManager.RemoveFromRoleAsync(user, "Customer");
-            await _userManager.UpdateAsync(user);            
-            return View();            
+            await _userManager.AddToRoleAsync(user!, "PremiumCustomer");
+            await _userManager.RemoveFromRoleAsync(user!, "Customer");
+            await _userManager.UpdateAsync(user!);
+            return View();
         }
         private bool SongExists(int id)
         {

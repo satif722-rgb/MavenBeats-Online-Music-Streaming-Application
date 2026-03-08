@@ -1,0 +1,51 @@
+@model DemoMusicMVC.Models.Playlist
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<h2>@Model.Name</h2>
+<p class="text-muted">Created: @Model.CreatedDate.ToLocalTime().ToString("MMM dd, yyyy")</p>
+<p>
+    <a asp-action="Index" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Back to My Playlists
+    </a>
+</p>
+
+@if (Model.PlaylistSongs == null || !Model.PlaylistSongs.Any())
+{
+    <p class="text-muted">This playlist has no songs yet.</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-3">
+        @foreach (var ps in Model.PlaylistSongs)
+        {
+            if (ps.Song != null)
+            {
+                <div class="col mb-4">
+                    <div class="card h-100" style="max-width: 20rem;">
+                        <div class="view overlay">
+                            <img class="card-img-top" src="/app-images/@ps.Song.photoPath" alt="@ps.Song.songName">
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@ps.Song.songName</h5>
+                            <a asp-controller="Songs" asp-action="Details" asp-route-id="@ps.Song.songId"
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-play"></i> Play
+                            </a>
+                            <form asp-action="RemoveSong" method="post" style="display:inline;">
+                                <input type="hidden" name="playlistSongId" value="@ps.PlaylistSongId" />
+                                <input type="hidden" name="playlistId" value="@Model.PlaylistId" />
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-minus"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}
